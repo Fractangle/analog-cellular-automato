@@ -1,0 +1,25 @@
+:root {
+  --glow-rad: 0.125em;
+  --glow-col: #fff;
+}
+
+html {
+  background-color: #222;
+  color: #ddd;
+  text-shadow: 0 0 var(--glow-rad) var(--glow-col);
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#theCanvas {
+  width: calc(100% - 2rem);
+  height: calc(100% - 2rem);
+}
