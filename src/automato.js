@@ -44,8 +44,9 @@ function updateOverlaps() {
   }
 }
 
-function timewarp() {
+function step() {
   updateOverlaps();
+  
 }
 
 function renderPlant(plant) {
@@ -97,7 +98,7 @@ window.addEventListener('load', function() {
   var stepBtn = document.getElementById('step');
   stepBtn.onclick = function(event) {
     console.log("STEP");
-    timewarp(0);
+    step();
     redraw(svg);
   };
 });
