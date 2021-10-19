@@ -60,8 +60,8 @@ function calcStep(areYouForReal, forceMinTime=0) {
     switch(newPlants[i].neighbors) {
       case 0:  newPlants[i].growthRate =  1.0; break;
       case 1:  newPlants[i].growthRate =  0.6; break;
-      case 2:  newPlants[i].growthRate = -0.2; break;
-      case 3:  newPlants[i].growthRate =  0.2; break;
+      case 2:  newPlants[i].growthRate =  0.2; break;
+      case 3:  newPlants[i].growthRate = -0.2; break;
       case 4:  newPlants[i].growthRate = -0.6; break;
       default: newPlants[i].growthRate = -1.0; break;
     }
