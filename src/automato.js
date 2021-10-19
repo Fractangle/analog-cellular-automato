@@ -42,7 +42,7 @@ function areWeThereYet(a, b) {
   }
 }
 
-function calcStep() {
+function calcStep(areYouForReal, forceMinTime=0) {
   let newPlants = [];
   plants.forEach(p => newPlants.push(copyPlant(p)));
   
@@ -60,20 +60,20 @@ function calcStep() {
     switch(newPlants[i].neighbors) {
       case 0:  newPlants[i].growthRate =  1.0; break;
       case 1:  newPlants[i].growthRate =  0.6; break;
-      case 2:  newPlants[i].growthRate =  0.2; break;
-      case 3:  newPlants[i].growthRate = -0.2; break;
+      case 2:  newPlants[i].growthRate = -0.2; break;
+      case 3:  newPlants[i].growthRate =  0.2; break;
       case 4:  newPlants[i].growthRate = -0.6; break;
       default: newPlants[i].growthRate = -1.0; break;
     }
   }
   
-  let soon = {'dt':Number.MAX_VALUE};
+  let soon = {'type':'NOTHING', 'dt':Number.MAX_VALUE};
   
   for(var a=0; a<plants.length-1; a++) {
     for(var b=a+1; b<plants.length; b++) {
       let dt = areWeThereYet(newPlants[a], newPlants[b]);
       if(dt < soon.dt) {
-        soon.type = "OVERLAP";
+        soon.type = 'OVERLAP';
         soon.a = a;
         soon.b = b;
         soon.dt = dt;
@@ -85,20 +85,43 @@ function calcStep() {
     if(newPlants[i].growthRate < 0) {
       let dt = newPlants[i].r/Math.abs(newPlants[i].growthrate);
       if(dt < soon.dt) {
-        soon.type = "WILT";
+        soon.type = 'WILT';
         soon.i = i;
         soon.dt = dt;
       }
     }
   }
   
-  if(soon.dt < Number.MAX_VALUE-1) {
+  if(areYouForReal) {
+    if(soon.dt == Number.MAX_VALUE) {
+      soon.dt = 10;
+    }
+    if(soon.dt < forceMinTime){
+      soon.dt = forceMinTime;
+    }
     newPlants.forEach(p => {
       p.r += soon.dt*p.growthRate;
       p.age += soon.dt;
     });
     plants = [];
     newPlants.forEach(p => plants.push(copyPlant(p)));
+  } else {
+    return soon;
+  }
+}
+
+function timeWarp(dt) {
+  let rem = dt;
+  let max = 9001;
+  while(rem>0 && max-->0) {
+    let next = calcStep(false);
+    if(next.dt < rem) {
+      calcStep(true);
+      rem -= next.dt;
+    } else {
+      calcStep(true, rem);
+      break;
+    }
   }
 }
 
@@ -113,14 +136,6 @@ function renderPlant(plant) {
   p.setAttribute('stroke-width', '1px');
   p.setAttribute('fill', '#00ff003f');
   g.append(p);
-  
-  // let t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  // t.setAttribute('x', plant.x);
-  // t.setAttribute('y', plant.y);
-  // t.setAttribute('stroke', '#fff');
-  // t.setAttribute('fill', '#fff');
-  // t.textContent=plant.age;
-  // g.append(t);
   
   return g;
 }
@@ -147,7 +162,13 @@ window.addEventListener('load', function() {
   
   var stepBtn = document.getElementById('step');
   stepBtn.onclick = function(event) {
-    calcStep();
+    calcStep(true);
     redraw(svg);
   };
+  
+  var step10btn = document.getElementById('step10');
+  step10btn.onclick = function(event) {
+    timeWarp(10.0);
+    redraw(svg);
+  }
 });
