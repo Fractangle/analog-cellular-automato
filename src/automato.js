@@ -42,7 +42,7 @@ function areWeThereYet(a, b) {
   }
 }
 
-function calcStep(areYouForReal, forceMinTime=0) {
+function calcStep(areYouForReal, forceTime=-1) {
   let newPlants = [];
   plants.forEach(p => newPlants.push(copyPlant(p)));
   
@@ -96,15 +96,20 @@ function calcStep(areYouForReal, forceMinTime=0) {
     if(soon.dt == Number.MAX_VALUE) {
       soon.dt = 10;
     }
-    if(soon.dt < forceMinTime){
-      soon.dt = forceMinTime;
+    if(forceTime > -1){
+      soon.dt = forceTime;
     }
     newPlants.forEach(p => {
       p.r += soon.dt*p.growthRate;
       p.age += soon.dt;
     });
     plants = [];
-    newPlants.forEach(p => plants.push(copyPlant(p)));
+    newPlants.forEach(p => {
+      if(p.r >= 0) {
+        plants.push(copyPlant(p));
+      }
+    });
+    console.log(soon.dt);
   } else {
     return soon;
   }
