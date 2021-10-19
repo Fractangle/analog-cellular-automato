@@ -44,9 +44,9 @@ function areWeThereYet(a, b) {
 
 function calcStep() {
   let newPlants = [];
-  plants.forEach(plant => newPlants.push(copyPlant(plant)));
+  plants.forEach(p => newPlants.push(copyPlant(p)));
   
-  newPlants.forEach(plant => {plant.neighbors=0;});
+  newPlants.forEach(p => {p.neighbors=0;});
   for(var a=0; a<plants.length-1; a++) {
     for(var b=a+1; b<newPlants.length; b++) {
       if(areYouMyNeighbor(plants[a], plants[b])) {
@@ -59,33 +59,47 @@ function calcStep() {
   for(var i=0; i<plants.length; i++) {
     switch(newPlants[i].neighbors) {
       case 0:  newPlants[i].growthRate =  1.0; break;
-      case 1:  newPlants[i].growthRate =  2/3; break;
-      case 2:  newPlants[i].growthRate =  1/3; break;
-      case 3:  newPlants[i].growthRate =  0.0; break;
-      case 4:  newPlants[i].growthRate = -1/3; break;
-      case 5:  newPlants[i].growthRate = -2/3; break;
+      case 1:  newPlants[i].growthRate =  0.6; break;
+      case 2:  newPlants[i].growthRate =  0.2; break;
+      case 3:  newPlants[i].growthRate = -0.2; break;
+      case 4:  newPlants[i].growthRate = -0.6; break;
       default: newPlants[i].growthRate = -1.0; break;
     }
   }
   
-  let soonest = {
-    'a': -1,
-    'b': -1,
-    'dt': Number.MAX_VALUE-1
-  };
+  let soon = {'dt':Number.MAX_VALUE};
   
   for(var a=0; a<plants.length-1; a++) {
     for(var b=a+1; b<plants.length; b++) {
       let dt = areWeThereYet(newPlants[a], newPlants[b]);
-      if(dt < soonest.dt) {
-        soonest.a = a;
-        soonest.b = b;
-        soonest.dt = dt;
+      if(dt < soon.dt) {
+        soon.type = "OVERLAP";
+        soon.a = a;
+        soon.b = b;
+        soon.dt = dt;
       }
     }
   }
   
+  for(var i=0; i<plants.length; i++) {
+    if(newPlants[i].growthRate < 0) {
+      let dt = newPlants[i].r/Math.abs(newPlants[i].growthrate);
+      if(dt < soon.dt) {
+        soon.type = "WILT";
+        soon.i = i;
+        soon.dt = dt;
+      }
+    }
+  }
   
+  if(soon.dt < Number.MAX_VALUE-1) {
+    newPlants.forEach(p => {
+      p.r += soon.dt*p.growthRate;
+      p.age += soon.dt;
+    });
+    plants = [];
+    newPlants.forEach(p => plants.push(copyPlant(p)));
+  }
 }
 
 function renderPlant(plant) {
@@ -100,13 +114,13 @@ function renderPlant(plant) {
   p.setAttribute('fill', '#00ff003f');
   g.append(p);
   
-  let t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-  t.setAttribute('x', plant.x);
-  t.setAttribute('y', plant.y);
-  t.setAttribute('stroke', '#fff');
-  t.setAttribute('fill', '#fff');
-  t.textContent=plant.age;
-  g.append(t);
+  // let t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  // t.setAttribute('x', plant.x);
+  // t.setAttribute('y', plant.y);
+  // t.setAttribute('stroke', '#fff');
+  // t.setAttribute('fill', '#fff');
+  // t.textContent=plant.age;
+  // g.append(t);
   
   return g;
 }
@@ -127,7 +141,7 @@ window.addEventListener('load', function() {
     const rect = svg.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    addPlant(x, y, x/4, y);
+    addPlant(x, y);
     redraw(svg);
   };
   
