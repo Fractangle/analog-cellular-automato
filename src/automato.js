@@ -1,86 +1,123 @@
-function makePlant(x, y, trunk=0.0, canopy=0.0) {
+function makePlant(x, y, r=0.0, age=0.0) {
   return {
     'x': x,
     'y': y,
-    'trunk': trunk,
-    'canopy': canopy
+    'r': r,
+    'age': age
   };
 }
 
-function clonePlant(oldPlant) {
-  return makePlant(oldPlant.x, oldPlant.y, oldPlant.trunk, oldPlant.canopy);
-}
-
-function overlapOfCircles(d, r1, r2) {
-  if(r1+r2 < d){return 0;}
-  if(Math.abs(r1-r2) > d){return Math.min(r1,r2)*2}
-  
-  return (r1+r2)-d;
+function copyPlant(oldPlant) {
+  return makePlant(oldPlant.x, oldPlant.y, oldPlant.r, oldPlant.age);
 }
 
 var plants = [];
 
-function addPlant(x, y, trunk=0.0, canopy=0.0) {
-  plants.push(makePlant(x, y, trunk, canopy));
+function addPlant(x, y, r=0.0, age=0.0) {
+  plants.push(makePlant(x, y, r, age));
 }
 
-function updateOverlaps() {
-  for(var p=0; p<plants.length; p++) {
-    plants[p].overlaps=[];
+function dist(a, b) {
+  let dx = a.x-b.x;
+  let dy = a.y-b.y;
+  return Math.sqrt(dx*dx + dy*dy);
+}
+
+function areYouMyNeighbor(a, b) {
+  let d = dist(a, b);
+  let r = a.r+b.r;
+  return d<r;
+}
+
+function areWeThereYet(a, b) {
+  let d = dist(a, b);
+  let r = a.r+b.r;
+  let gap = d-r;
+  let delta = a.growthRate + b.growthRate;
+  
+  if(gap*delta>0) {
+    return gap/delta;
+  } else {
+    return Number.MAX_VALUE;
   }
-  for(var p1=0; p1<plants.length-1; p1++) {
-    for(var p2=p1+1; p2<plants.length; p2++) {
-      let dx = plants[p1].x - plants[p2].x;
-      let dy = plants[p1].y - plants[p2].y;
-      let d = Math.sqrt(dx**2 + dy**2);
-      let overlapDist = overlapOfCircles(d, plants[p1].canopy, plants[p2].canopy);
-      plants[p1].overlaps.push(overlapDist);
-      plants[p2].overlaps.push(overlapDist);
+}
+
+function calcStep() {
+  let newPlants = [];
+  plants.forEach(plant => newPlants.push(copyPlant(plant)));
+  
+  newPlants.forEach(plant => {plant.neighbors=0;});
+  for(var a=0; a<plants.length-1; a++) {
+    for(var b=a+1; b<newPlants.length; b++) {
+      if(areYouMyNeighbor(plants[a], plants[b])) {
+        newPlants[a].neighbors++;
+        newPlants[b].neighbors++;
+      }
     }
   }
-  for(var p=0; p<plants.length; p++) {
-    let d = plants[p].canopy*2;
-    plants[p].growthRate = plants[p].overlaps.reduce((a,b)=>a-(b/d), 1.0);
+  
+  for(var i=0; i<plants.length; i++) {
+    switch(newPlants[i].neighbors) {
+      case 0:  newPlants[i].growthRate =  1.0; break;
+      case 1:  newPlants[i].growthRate =  2/3; break;
+      case 2:  newPlants[i].growthRate =  1/3; break;
+      case 3:  newPlants[i].growthRate =  0.0; break;
+      case 4:  newPlants[i].growthRate = -1/3; break;
+      case 5:  newPlants[i].growthRate = -2/3; break;
+      default: newPlants[i].growthRate = -1.0; break;
+    }
   }
-}
-
-function step() {
-  updateOverlaps();
+  
+  let soonest = {
+    'a': -1,
+    'b': -1,
+    'dt': Number.MAX_VALUE-1
+  };
+  
+  for(var a=0; a<plants.length-1; a++) {
+    for(var b=a+1; b<plants.length; b++) {
+      let dt = areWeThereYet(newPlants[a], newPlants[b]);
+      if(dt < soonest.dt) {
+        soonest.a = a;
+        soonest.b = b;
+        soonest.dt = dt;
+      }
+    }
+  }
+  
   
 }
 
 function renderPlant(plant) {
-  let plant_g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+  let g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
   
-  let canopy = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  canopy.setAttribute('cx', plant.x);
-  canopy.setAttribute('cy', plant.y);
-  canopy.setAttribute('r', plant.canopy+1);
-  canopy.setAttribute('stroke', '#00ff00');
-  canopy.setAttribute('stroke-width', '1px');
-  canopy.setAttribute('fill', '#00ff003f');
-  plant_g.appendChild(canopy);
-  let trunk = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-  trunk.setAttribute('cx', plant.x);
-  trunk.setAttribute('cy', plant.y);
-  trunk.setAttribute('r', plant.trunk+1);
-  trunk.setAttribute('stroke', '#553300');
-  trunk.setAttribute('stroke-width', '1px');
-  trunk.setAttribute('fill', '#5533003f');
-  plant_g.appendChild(trunk);
+  let p = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  p.setAttribute('cx', plant.x);
+  p.setAttribute('cy', plant.y);
+  p.setAttribute('r', plant.r+1);
+  p.setAttribute('stroke', '#00ff00');
+  p.setAttribute('stroke-width', '1px');
+  p.setAttribute('fill', '#00ff003f');
+  g.append(p);
   
-  return plant_g;
+  let t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+  t.setAttribute('x', plant.x);
+  t.setAttribute('y', plant.y);
+  t.setAttribute('stroke', '#fff');
+  t.setAttribute('fill', '#fff');
+  t.textContent=plant.age;
+  g.append(t);
+  
+  return g;
 }
 
 function redraw(svg) {
-  let plantsg = document.getElementById('plants');
-  while(plantsg.firstChild) {
-    plantsg.removeChild(plantsg.lastChild);
+  let plantsGroup = document.getElementById('plants');
+  while(plantsGroup.firstChild) {
+    plantsGroup.removeChild(plantsGroup.lastChild);
   }
-  
-  for(var i=0; i<plants.length; i++) {
-    let plant = plants[i];
-    plantsg.appendChild(renderPlant(plant));
+  for(const i in plants) {
+    plantsGroup.append(renderPlant(plants[i]));
   }
 }
 
@@ -90,15 +127,13 @@ window.addEventListener('load', function() {
     const rect = svg.getBoundingClientRect();
     const x = event.clientX - rect.left;
     const y = event.clientY - rect.top;
-    console.log(x, y);
-    addPlant(x, y);
+    addPlant(x, y, x/4, y);
     redraw(svg);
   };
   
   var stepBtn = document.getElementById('step');
   stepBtn.onclick = function(event) {
-    console.log("STEP");
-    step();
+    calcStep();
     redraw(svg);
   };
 });
